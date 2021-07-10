@@ -78,7 +78,7 @@ This process will:
 
 
 ```javascript=
-const DKGClient = require('@origintrail-official/dkg-client');
+const DKGClient = require('dkg-client');
 
 const dkg = new DKGClient();
 
