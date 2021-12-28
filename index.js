@@ -1,142 +1,29 @@
 const axios = require('axios');
-const logger = require('./utilities/logger');
+const fs = require('fs');
+const FormData = require('form-data');
+
 const timeoutInSeconds = 60;
-const maxNumberOfImportRetries = 5;
-const maxNumberOfReplicationRetries = 5;
-const maxNumberOfExportRetries = 5;
-const maxNumberOfRemoteFetchRetries = 5;
+const maxNumberOfRetries = 5;
 
-const simpleDatasetObjectIdPlaceholder = 'OBJECT_ID';
-const simpleDatasetObjectValuePlaceholder = 'OBJECT_VALUE';
-const simpleDatasetPropertiesPlaceholder = 'PROPERTIES';
-const simpleDatasetTemplate = `
-{
-  "@graph": [
-    {
-      "@id": "${simpleDatasetObjectValuePlaceholder}",
-      "@type": "otObject",
-      "identifiers": [
-        {
-          "@type": "${simpleDatasetObjectIdPlaceholder}",
-          "@value": "${simpleDatasetObjectValuePlaceholder}"
-        }
-      ],
-      "properties": ${simpleDatasetPropertiesPlaceholder},
-      "relations": []
-    }
-  ]
-}
-`
-
-const IMPORT_STATUSES = {
+const STATUSES = {
     pending: 'PENDING',
     completed: 'COMPLETED',
-    failed: 'FAILED'
-}
-
-const REPLICATION_STATUSES = {
-    pending: 'PENDING',
-    initialized: 'INITIALIZED',
-    failed: 'FAILED'
-}
-
-const EXPORT_STATUSES = {
-    pending: 'PENDING',
-    failed: 'FAILED'
-}
-
-const REMOTE_FETCH_STATUSES = {
-    pending: 'PENDING',
-    failed: 'FAILED'
-}
-
-const defaultPublishOptions = {
-    holding_time_in_minutes: 10,
-    standard_id: 'GRAPH', // GS1-EPCIS | WOT | GRAPH
-    urgent: true,
-    blockchain_id: null,
-}
-
-const defaultExportOptions = {
-    standard_id: 'GRAPH', // GS1-EPCIS | WOT | GRAPH
-}
-
-const defaultRemoteFetchOptions = {
-    standard_id: 'GRAPH', // GS1-EPCIS | WOT | GRAPH
+    failed: 'FAILED',
 }
 
 class DKGClient {
 
-    init(nodeHostName, nodePort, useSSL = true, blockchainId = null, wallet = null) {
-        if (!nodeHostName || !nodePort) {
+    constructor(options) {
+        if (!options.nodeHostname || !options.nodePort) {
             throw Error('nodeHostName and nodePort are required parameters');
         }
-        this.nodeBaseUrl = `${useSSL? 'https://': 'http://'}${nodeHostName}:${nodePort}`;
+        this.nodeBaseUrl = `${options.useSSL ? 'https://' : 'http://'}${options.nodeHostname}:${options.nodePort}`;
     }
 
     /**
-     * @param objectData -> { "identifierType": "id_name", "identifierValue": "id_value", "properties": {}}
+     * Get node information (version, is autoupgrade enbled, is telemetry enabled)
      */
-    simplePrepare(objectData) {
-
-        var objectIdReg = new RegExp(simpleDatasetObjectIdPlaceholder, "g");
-        var objectValueReg = new RegExp(simpleDatasetObjectValuePlaceholder, "g");
-        let simpleDataset = simpleDatasetTemplate
-            .replace(objectIdReg, objectData.identifier_type)
-            .replace(objectValueReg, objectData.identifier_value);
-        let properties = '{}';
-        if (objectData.properties) {
-            properties = JSON.stringify(objectData.properties);
-        }
-        simpleDataset = simpleDataset.replace(simpleDatasetPropertiesPlaceholder, properties);
-        return simpleDataset;
-    }
-
-    publish(dataset, options = defaultPublishOptions) {
-        if (!dataset) {
-            throw Error('Please provide dataset in order to publish.')
-        }
-        let datasetId = '';
-        return new Promise((resolve, reject) => {
-            this._sendImportRequest( dataset, options)
-                .then((response) => this._getImportResult(response.data.handler_id))
-                .then((response) => {
-                    datasetId = response.data.dataset_id;
-                })
-                .then(() => this._sendReplicationRequest(datasetId, options))
-                .then((response) => this._getReplicationResult(response.data.handler_id))
-                .then((response) => {
-                    response.data.dataset_id = datasetId;
-                    resolve(response)
-                })
-                .catch((error) => reject(error));
-        });
-    }
-
-    export (datasetId, options = defaultExportOptions) {
-        if (!datasetId) {
-            throw Error('Please provide datasetId for export.')
-        }
-        return new Promise((resolve, reject) => {
-            this._sendExportRequest(datasetId, options)
-                .then((response) => this._getExportResult(response.data.handler_id))
-                .then((response) => resolve(response))
-                .catch((error) => reject(error));
-        });
-    }
-
-    trail (query) {
-        if (!query) {
-            throw Error('Query parameter is required');
-        }
-        return new Promise((resolve, reject) => {
-            this._sendTrailRequest(query)
-                .then((response) => resolve(response.data))
-                .catch((error) => reject(error))
-        })
-    }
-
-    nodeInfo () {
+    nodeInfo() {
         return new Promise((resolve, reject) => {
             this._sendNodeInfoRequest()
                 .then((response) => resolve(response.data))
@@ -144,242 +31,282 @@ class DKGClient {
         })
     }
 
-    networkQuery (query) {
-        return new Promise((resolve, reject) => {
-            let query_id;
-            this._sendNetworkQuery(query)
-                .then(async (response) =>{
-                    logger.debug('Waiting for network query to be finalized before fetching query response')
-                    await this.sleepForMilliseconds(10000);
-                    query_id = response.data.query_id;
-                })
-                .then(() => this._getNetworkQueryResponse(query_id))
-                .then((response) => {
-                    resolve(response.data)
-                })
-                .catch((error) => reject(error));
-        })
+    _sendNodeInfoRequest() {
+        console.debug('Sending node info request')
+        return axios.get(
+            `${this.nodeBaseUrl}/info`,
+            { timeout: timeoutInSeconds * 1000 }
+        )
     }
 
-    remoteFetch (networkReplyId, datasetId, options = defaultRemoteFetchOptions) {
-        if (!networkReplyId || !datasetId) {
-            throw Error('networkReplyId and datasetId are required parameters')
+    /**
+     * @param {object} options
+     * @param {string} options.filepath - path to the dataset
+     * @param {string[]} options.assets (optional)
+     * @param {string[]} options.keywords (optional)
+     */
+    publish(options) {
+        if (!options || !options.filepath) {
+            throw Error('Please provide publish options in order to publish.');
         }
         return new Promise((resolve, reject) => {
-            let remoteFetchHandlerId;
-            this._sendNetworkReadExportRequest(networkReplyId, datasetId, options)
-                .then(async (response) =>{
-                    remoteFetchHandlerId = response.data.handler_id;
-                })
-                .then(() => this._getNetworkReadExportResponse(remoteFetchHandlerId))
+            this._publishRequest(options)
+                .then((response) => this._getResult({ handler_id: response.data.handler_id, operation: 'publish' }))
                 .then((response) => {
-                    resolve(response.data)
+                    resolve(response)
                 })
                 .catch((error) => reject(error));
-        })
+        });
     }
 
-    _sendNetworkReadExportRequest(networkReplyId, datasetId, options) {
-        logger.debug('Sending remote fetch request')
-        return axios.post(
-            `${this.nodeBaseUrl}/api/latest/network/read_export`,
-            {
-                reply_id: networkReplyId,
-                data_set_id: datasetId,
-                standard_id: options.standard_id,
+    _publishRequest(options) {
+        console.debug('Sending publish request.');
+        const form = new FormData();
+        form.append('file', fs.createReadStream(options.filepath));
+        form.append('assets', JSON.stringify([`${options.assets}`]));
+        form.append('visibility', JSON.stringify(!!options.visibility));
+        let axios_config = {
+            method: 'post',
+            url: `${this.nodeBaseUrl}/publish`,
+            headers: {
+                ...form.getHeaders()
             },
-            {timeout: timeoutInSeconds * 1000})
+            data: form
+        }
+
+        return axios(axios_config);
     }
 
-    async _getNetworkReadExportResponse(networkReadExportHandlerId) {
-        if (!networkReadExportHandlerId) {
-            throw Error('Missing remote fetch handler id');
+    /**
+     * @param {object} options
+     * @param {string[]} options.ids - assertion ids
+     */
+    resolve(options) {
+        if (!options || !options.ids) {
+            throw Error('Please provide resolve options in order to resolve.')
+        }
+        return new Promise((resolve, reject) => {
+            this._resolveRequest(options)
+                .then((response) =>
+                    this._getResult({ handler_id: response.data.handler_id, operation: 'resolve' }))
+                .then((response) => {
+                    resolve(response)
+                })
+                .catch((error) => reject(error));
+        });
+    }
+
+    _resolveRequest(options) {
+        console.debug('Sending resolve request.');
+        const form = new FormData();
+        let axios_config = {
+            method: 'get',
+            url: `${this.nodeBaseUrl}/resolve?ids=${options.ids}`,
+            headers: {
+                ...form.getHeaders()
+            },
+            data: form
+        }
+        return axios(axios_config);
+    }
+
+    /**
+     * @param {object} options
+     * @param {string} options.query - search term
+     * @param {string} options.resultType - result type: assertions or entities
+     * @param {boolean} options.prefix (optional)
+     * @param {number} options.limit (optional)
+     * @param {string[]} options.issuers (optional)
+     * @param {string} options.schemaTypes (optional)
+     * @param {number} options.numberOfResults (optional)
+     * @param {number} options.timeout (optional)
+     */
+    search(options) {
+        if (!options || !options.query || !options.resultType) {
+            throw Error('Please provide search options in order to search.')
+        }
+        return new Promise((resolve, reject) => {
+            this._searchRequest(options)
+                .then((response) => this._getSearchResult({ handler_id: response.data.handler_id, resultType: options.resultType }))
+                .then((response) => {
+                    resolve(response)
+                })
+                .catch((error) => reject(error));
+        });
+    }
+
+    _searchRequest(options) {
+        console.debug('Sending search request.');
+        const form = new FormData();
+        let prefix = options.prefix ? options.prefix : true;
+        let limit = options.limit ? options.limit : 20;
+        let query = options.query;
+        let resultType = options.resultType;
+        let url = `${this.nodeBaseUrl}/${resultType}:search?query=${query}`;
+        if(resultType === 'entities'){
+            url = `${this.nodeBaseUrl}/${resultType}:search?query=${query}&limit=${limit}&prefix=${prefix}`
+        }
+        let axios_config = {
+            method: 'get',
+            url,
+            headers: {
+                ...form.getHeaders()
+            },
+            data: form
+        }
+        return axios(axios_config);
+    }
+
+    async _getSearchResult(options) {
+        if (!options.handler_id) {
+            throw Error('Unable to get results, need handler id');
+        }
+        let searchResponse = {
+            status: STATUSES.pending
+        }
+        let retries = 0;
+        const form = new FormData();
+        let axios_config = {
+            method: 'get',
+            url: `${this.nodeBaseUrl}/${options.resultType}:search/result/${options.handler_id}`,
+            headers: {
+                ...form.getHeaders()
+            },
+        }
+        // TODO timeout or number of results
+        do {
+            retries++;
+            await this.sleepForMilliseconds(1 * 1000);
+            try {
+                searchResponse = await axios(axios_config);
+                console.debug(`Search result status: ${searchResponse.data.status}`);
+            } catch (e) {
+                console.log(e);
+                if (retries === maxNumberOfRetries) {
+                    throw e;
+                }
+            }
+        } while (searchResponse.data.status === STATUSES.pending);
+        if (searchResponse.data.status === STATUSES.failed) {
+            throw Error(`Search failed. Reason: ${searchResponse.data.message}.`);
+        }
+        return searchResponse.data;
+    }
+
+    /**
+     * @param {object} options
+     * @param {string} options.query - sparql query
+     */
+    query(options) {
+        if (!options || !options.query ) {
+            throw Error('Please provide options in order to query.')
+        }
+        return new Promise((resolve, reject) => {
+            this._queryRequest(options)
+                .then((response) =>
+                    this._getResult({ handler_id: response.data.handler_id, operation: 'query' }))
+                .then((response) => {
+                    resolve(response)
+                })
+                .catch((error) => reject(error));
+        });
+    }
+
+    _queryRequest(options) {
+        console.debug('Sending query request.');
+        const form = new FormData();
+        let type = options.type ? options.type : 'construct';
+        form.append('query', options.query);
+        let axios_config = {
+            method: 'post',
+            url: `${this.nodeBaseUrl}/query?type=${type}`,
+            headers: {
+                ...form.getHeaders()
+            },
+            data: form
+        }
+        return axios(axios_config);
+    }
+
+    /**
+     * @param {object} options
+     * @param {string[]} options.assertions
+     * @param {string[]} options.nquads
+     * @param {object} options.validationInstructions
+     */
+    validate(options) {
+        if (!options || !options.assertions || !options.nquads) {
+            throw Error('Please provide assertions and nquads in order to get proofs.')
+        }
+        return new Promise((resolve, reject) => {
+            this._getProofsRequest(options)
+                .then((response) =>
+                    this._getResult({ handler_id: response.data.handler_id, operation: 'proofs:get' }))
+                .then((response) => {
+                    console.log(response);
+
+                    resolve(response)
+                })
+                .catch((error) => reject(error));
+        });
+    }
+
+    _getProofsRequest(options) {
+        console.debug('Sending get proofs request.');
+        const form = new FormData();
+        let assertions = options.assertions;
+        let nquads = options.nquads;
+        form.append('nquads', JSON.stringify([`${nquads}`]));
+        let axios_config = {
+            method: 'post',
+            url: `${this.nodeBaseUrl}/proofs:get?assertions=${assertions}`,
+            headers: {
+                ...form.getHeaders()
+            },
+            data: form
+        }
+        return axios(axios_config);
+    }
+
+    async _getResult(options) {
+        if (!options.handler_id || !options.operation) {
+            throw Error('Unable to get results, need handler id and operation');
         }
         let response = {
-            status: REMOTE_FETCH_STATUSES.pending
+            status: STATUSES.pending
         }
         let retries = 0;
+        const form = new FormData();
+        let axios_config = {
+            method: 'get',
+            url: `${this.nodeBaseUrl}/${options.operation}/result/${options.handler_id}`,
+            headers: {
+                ...form.getHeaders()
+            },
+        }
         do {
             retries++;
-            await this.sleepForMilliseconds(5 * 1000);
+            await this.sleepForMilliseconds(1 * 1000);
             try {
-                response = await axios.get(
-                    `${this.nodeBaseUrl}/api/latest/network/read_export/result/${networkReadExportHandlerId}`,
-                    {timeout: timeoutInSeconds * 1000}
-                )
-                logger.debug(`Remote fetch status: ${response.data.status}`);
+                response = await axios(axios_config);
+                console.debug(`${options.operation} result status: ${response.data.status}`);
             } catch (e) {
-                if (retries === maxNumberOfRemoteFetchRetries) {
+                console.log(e);
+                if (retries === maxNumberOfRetries) {
                     throw e;
                 }
             }
-        } while (response.data.status === REMOTE_FETCH_STATUSES.pending);
-        if (response.data.status === REMOTE_FETCH_STATUSES.failed) {
-            throw Error(`Network fetch failed. Reason: ${response.data.message}.`);
+        } while (response.data.status === STATUSES.pending);
+        if (response.data.status === STATUSES.failed) {
+            throw Error(`Get ${options.operation} failed. Reason: ${response.data.message}.`);
         }
         return response.data;
-    }
-
-    _sendNetworkQuery(query) {
-        logger.debug('Sending network query request')
-        return axios.post(
-            `${this.nodeBaseUrl}/api/latest/network/query`,
-            { headers: {'Content-Type': 'application/json'}, query},
-            {timeout: timeoutInSeconds * 1000})
-    }
-
-    _getNetworkQueryResponse(networkQueryHandlerId) {
-        logger.debug('Getting network query responses')
-        return axios.get(
-            `${this.nodeBaseUrl}/api/latest/network/query/responses/${networkQueryHandlerId}`,
-            {timeout: timeoutInSeconds * 1000}
-        )
-    }
-
-    _sendNodeInfoRequest() {
-        logger.debug('Sending node info request')
-        return axios.get(
-            `${this.nodeBaseUrl}/api/latest/info`,
-            {timeout: timeoutInSeconds * 1000}
-        )
-    }
-
-    _sendImportRequest(dataset, options) {
-        logger.debug('Sending import request.');
-        return axios.post(
-            `${this.nodeBaseUrl}/api/latest/import`,
-            { standard_id: options.standard_id, file: dataset},
-            { timeout: timeoutInSeconds * 1000 }
-        );
-    }
-
-    async _getImportResult (importHandlerId) {
-        if (!importHandlerId) {
-            throw Error('Unable to start import');
-        }
-        let importResponse = {
-            status: IMPORT_STATUSES.pending
-        }
-        let retries = 0;
-        do {
-            retries++;
-            await this.sleepForMilliseconds(5 * 1000);
-            try {
-                importResponse = await axios.get(
-                    `${this.nodeBaseUrl}/api/latest/import/result/${importHandlerId}`,
-                    {timeout: timeoutInSeconds * 1000}
-                )
-                logger.debug(`Import result status: ${importResponse.data.status}`);
-            } catch (e) {
-                if (retries === maxNumberOfImportRetries) {
-                    throw e;
-                }
-            }
-        } while (importResponse.data.status === IMPORT_STATUSES.pending);
-        if (importResponse.data.status === IMPORT_STATUSES.failed) {
-            throw Error(`Import failed. Reason: ${importResponse.data.message}.`);
-        }
-        return importResponse.data;
-    }
-
-    _sendReplicationRequest(datasetId, options) {
-        logger.debug('Sending replication request.');
-        return axios.post(`${this.nodeBaseUrl}/api/latest/replicate`, {
-            headers: { 'Content-Type': 'application/json' },
-            dataset_id: datasetId,
-            blockchain_id: options.blockchain_id,
-            holding_time_in_minutes: options.holding_time_in_minutes,
-            urgent: options.urgent,
-        }, { timeout: timeoutInSeconds * 1000 })
-    }
-
-    async _getReplicationResult(replicationHandlerId) {
-        if (!replicationHandlerId) {
-            throw Error('Unable to start replication, handler id undefined.');
-        }
-        let replicationResponse = {
-            status: REPLICATION_STATUSES.pending
-        }
-        let retries = 0;
-        do {
-            retries++;
-            await this.sleepForMilliseconds(5 * 1000);
-            try {
-                replicationResponse = await axios.get(
-                    `${this.nodeBaseUrl}/api/latest/replicate/result/${replicationHandlerId}`,
-                    {timeout: timeoutInSeconds * 1000}
-                )
-                logger.debug(`Replication result status: ${replicationResponse.data.status}`);
-            } catch (e) {
-                if (retries === maxNumberOfReplicationRetries) {
-                    throw e;
-                }
-            }
-        } while (replicationResponse.data.status === REPLICATION_STATUSES.pending || replicationResponse.data.status === REPLICATION_STATUSES.initialized);
-        if (replicationResponse.data.status === REPLICATION_STATUSES.failed) {
-            throw Error(`Replication failed. Reason: ${replicationResponse.data.message}.`);
-        }
-        return replicationResponse.data
-    }
-
-    _sendExportRequest (datasetId, options) {
-        logger.debug('Sending export request.');
-        return axios.post(
-            `${this.nodeBaseUrl}/api/latest/export`,
-            { standard_id: options.standard_id, dataset_id: datasetId},
-            { timeout: timeoutInSeconds * 1000 }
-        );
-    }
-
-    async _getExportResult (exportHandlerId) {
-        if (!exportHandlerId) {
-            throw Error('Unable to start export, handler id undefined.');
-        }
-        let exportResponse = {
-            status: EXPORT_STATUSES.pending
-        }
-        let retries = 0;
-        do {
-            retries++;
-            await this.sleepForMilliseconds(5 * 1000);
-            try {
-                exportResponse = await axios.get(
-                    `${this.nodeBaseUrl}/api/latest/export/result/${exportHandlerId}`,
-                    {timeout: timeoutInSeconds * 1000}
-                )
-                logger.debug(`Export result status: ${exportResponse.data.status}`);
-            } catch (e) {
-                if (retries === maxNumberOfExportRetries) {
-                    throw e;
-                }
-            }
-        } while (exportResponse.data.status === EXPORT_STATUSES.pending);
-        if (exportResponse.data.status === EXPORT_STATUSES.failed) {
-            throw Error(`Export failed. Reason: ${exportResponse.data.message}.`);
-        }
-        return exportResponse.data
-    }
-
-    _sendTrailRequest(query){
-        logger.debug('Sending trail request.');
-        return axios.post(
-            `${this.nodeBaseUrl}/api/latest/trail`,
-            {
-                headers: { 'Content-Type': 'application/json' },
-                identifier_types: query.identifier_types,
-                identifier_values: query.identifier_values,
-                connection_types: query.connection_types,
-                opcode: query.opcode,
-                depth: query.depth,
-                extended: query.extended,
-            },
-            { timeout: timeoutInSeconds * 1000 }
-        );
     }
 
     async sleepForMilliseconds(milliseconds) {
         await new Promise(r => setTimeout(r, milliseconds));
     }
+
 }
 
 module.exports = DKGClient;

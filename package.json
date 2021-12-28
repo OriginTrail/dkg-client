@@ -1,6 +1,6 @@
 {
   "name": "dkg-client",
-  "version": "1.0.0",
+  "version": "6.0.0",
   "description": "Javascript library for interaction with the OriginTrail Decentralized Knowledge Graph",
   "main": "index.js",
   "scripts": {
@@ -16,14 +16,17 @@
     "graph",
     "dkg",
     "blockchain",
-    "ot-node"
+    "ot-node",
+    "v6"
   ],
   "author": "Trace Labs Group",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/OriginTrail/dkg-client/issues"
   },
-  "homepage": "https://github.com/OriginTrail/dkg-client#readme","dependencies": {
-    "axios": "^0.21.1"
+  "homepage": "https://github.com/OriginTrail/dkg-client#readme",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "form-data": "^4.0.0"
   }
 }
