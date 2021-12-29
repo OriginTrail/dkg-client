@@ -1,9 +1,11 @@
 const axios = require('axios');
 const fs = require('fs');
 const FormData = require('form-data');
+const MerkleTools = require('merkle-tools');
 
-const timeoutInSeconds = 60;
+const defaultTimeoutInSeconds = 10;
 const maxNumberOfRetries = 5;
+const defaultNumberOfResults = 1;
 
 const STATUSES = {
     pending: 'PENDING',
@@ -35,7 +37,7 @@ class DKGClient {
         console.debug('Sending node info request')
         return axios.get(
             `${this.nodeBaseUrl}/info`,
-            { timeout: timeoutInSeconds * 1000 }
+            { timeout: defaultTimeoutInSeconds * 1000 }
         )
     }
 
@@ -165,6 +167,8 @@ class DKGClient {
             status: STATUSES.pending
         }
         let retries = 0;
+        let timeout = options.timeout ? options.timeout : defaultTimeoutInSeconds;
+        let numberOfResults = options.numberOfResults ? options.numberOfResults : defaultNumberOfResults;
         const form = new FormData();
         let axios_config = {
             method: 'get',
@@ -173,23 +177,22 @@ class DKGClient {
                 ...form.getHeaders()
             },
         }
-        // TODO timeout or number of results
+        let timeoutFlag = false;
+        let currentNumberOfResults = numberOfResults;
+        setTimeout(() => { timeoutFlag = true; }, 5* 1000);
         do {
             retries++;
             await this.sleepForMilliseconds(1 * 1000);
             try {
                 searchResponse = await axios(axios_config);
-                console.debug(`Search result status: ${searchResponse.data.status}`);
+                currentNumberOfResults = searchResponse.data.itemListElement.length;
             } catch (e) {
                 console.log(e);
                 if (retries === maxNumberOfRetries) {
                     throw e;
                 }
             }
-        } while (searchResponse.data.status === STATUSES.pending);
-        if (searchResponse.data.status === STATUSES.failed) {
-            throw Error(`Search failed. Reason: ${searchResponse.data.message}.`);
-        }
+        } while (!timeoutFlag && numberOfResults > currentNumberOfResults);
         return searchResponse.data;
     }
 
@@ -242,13 +245,29 @@ class DKGClient {
             this._getProofsRequest(options)
                 .then((response) =>
                     this._getResult({ handler_id: response.data.handler_id, operation: 'proofs:get' }))
-                .then((response) => {
-                    console.log(response);
-
+                .then(async (response) => {
+                    // console.log(JSON.stringify(response, null, 2));
+                    await this._performValidation(response.data[0].assertionId, response.data[0].proofs);
                     resolve(response)
                 })
                 .catch((error) => reject(error));
         });
+    }
+
+    async _performValidation(assertionId, proofs) {
+        for(let obj of proofs) {
+            if(obj.proof === null) {
+                console.log(`${obj.triple} has no proof in assertion ${assertionId}`);
+                continue;
+            }
+            let rootHash = await this._fetchRootHash(assertionId);
+            let verified = this._validateProof(obj, rootHash);
+            if(verified) {
+                console.log(`Valid data: ${JSON.stringify(obj)}`);
+            } else {
+                console.log(`Invalid data: ${JSON.stringify(obj)}`);
+            }
+        }
     }
 
     _getProofsRequest(options) {
@@ -256,7 +275,7 @@ class DKGClient {
         const form = new FormData();
         let assertions = options.assertions;
         let nquads = options.nquads;
-        form.append('nquads', JSON.stringify([`${nquads}`]));
+        form.append('nquads', JSON.stringify(nquads));
         let axios_config = {
             method: 'post',
             url: `${this.nodeBaseUrl}/proofs:get?assertions=${assertions}`,
@@ -266,6 +285,18 @@ class DKGClient {
             data: form
         }
         return axios(axios_config);
+    }
+
+    async _fetchRootHash(assertionId) {
+        let result = await this.resolve({ ids: assertionId });
+        return result.data[0][assertionId].rootHash;
+    }
+
+    _validateProof(obj, rootHash){
+        const tree = new MerkleTools();
+        const leaf = obj.tripleHash;
+        const verified = tree.validateProof(obj.proof, leaf, rootHash);
+        return verified;
     }
 
     async _getResult(options) {
