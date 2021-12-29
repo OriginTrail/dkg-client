@@ -2,13 +2,13 @@ const axios = require('axios');
 const fs = require('fs');
 const FormData = require('form-data');
 const MerkleTools = require('merkle-tools');
+const SparqlParser = require('sparqljs').Parser;
 
 const Logger = require('./utilities/logger');
 
-const defaultTimeoutInSeconds = 10;
 const maxNumberOfRetries = 5;
-const defaultNumberOfResults = 1;
-
+const defaultTimeoutInSeconds = 10;
+const defaultNumberOfResults = 20;
 const STATUSES = {
     pending: 'PENDING',
     completed: 'COMPLETED',
@@ -29,10 +29,14 @@ class DKGClient {
     constructor(options) {
         let loglevel = options.loglevel ? options.loglevel : 'info';
         this.logger = new Logger(loglevel);
+        this.sparqlParser = new SparqlParser({ skipValidation: false });
         if (!options.endpoint || !options.port) {
             throw Error('Endpoint and port are required parameters');
         }
         this.nodeBaseUrl = `${options.useSSL ? 'https://' : 'http://'}${options.endpoint}:${options.port}`;
+        this._sendNodeInfoRequest().then().catch((error) =>{
+            throw new Error(`Endpoint not available: ${error}`);
+        });
     }
 
     /**
@@ -79,6 +83,7 @@ class DKGClient {
         const form = new FormData();
         form.append('file', fs.createReadStream(options.filepath));
         form.append('assets', JSON.stringify([`${options.assets}`]));
+        form.append('keywords', JSON.stringify([`${options.keywords}`]));
         form.append('visibility', JSON.stringify(!!options.visibility));
         let axios_config = {
             method: 'post',
@@ -114,9 +119,21 @@ class DKGClient {
     _resolveRequest(options) {
         this.logger.debug('Sending resolve request.');
         const form = new FormData();
+        let ids = '';
+
+        let firstOne = true;
+        for(let id of options.ids) {
+            firstOne = false;
+            if(firstOne) {
+                ids += `ids=${id}`
+            } else {
+                ids += `&ids=${id}`
+            }
+        }
+
         let axios_config = {
             method: 'get',
-            url: `${this.nodeBaseUrl}/resolve?ids=${options.ids}`,
+            url: `${this.nodeBaseUrl}/resolve?${ids}`,
             headers: {
                 ...form.getHeaders()
             },
@@ -232,7 +249,13 @@ class DKGClient {
         this.logger.debug('Sending query request.');
         const form = new FormData();
         let type = options.type ? options.type : 'construct';
-        form.append('query', options.query);
+        let sparqlQuery = options.query;
+        try {
+            this.sparqlParser.parse(sparqlQuery);
+        } catch(error) {
+            throw new Error(`Sparql query error: ${error}`)
+        }
+        form.append('query', sparqlQuery);
         let axios_config = {
             method: 'post',
             url: `${this.nodeBaseUrl}/query?type=${type}`,
@@ -246,7 +269,6 @@ class DKGClient {
 
     /**
      * @param {object} options
-     * @param {string[]} options.assertions
      * @param {string[]} options.nquads
      * @param {object} options.validationInstructions
      */

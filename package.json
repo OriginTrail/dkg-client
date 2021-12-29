@@ -30,6 +30,7 @@
     "crypto-js": "^4.1.1",
     "form-data": "^4.0.0",
     "loglevel": "^1.8.0",
-    "merkle-tools": "^1.4.1"
+    "merkle-tools": "^1.4.1",
+    "sparqljs": "^3.5.1"
   }
 }

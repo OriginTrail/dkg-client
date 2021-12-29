@@ -97,8 +97,10 @@ await dkg.publish(options).then((result) => {
 });
 
 // resolving assertion
-options =  { ids: '2dd6f0b0a1ce1e6f9aa5ffbd2314e2fe0ecda20aa045babefada933620149e68' };
-dkg.resolve(options).then((result) => {
+options =  { ids: [
+        '2dd6f0b0a0ce1e6f9aa5ffbd23aee2fe0ecda20aa045bdbefada93b670146e68',
+        '2286826799d0a32a6f0eec7813fcb627910be45fca21f6378cb26ca95097c939'
+    ] };dkg.resolve(options).then((result) => {
     console.log(JSON.stringify(result));
 });
 
