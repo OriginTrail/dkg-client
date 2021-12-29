@@ -66,13 +66,7 @@ npm install dkg-client
 
 ### Setting up your development environment
 
-The easiest way to jumpstart development in a local environment is to [initialize a local OriginTrail DKG network](https://github.com/OriginTrail/ot-node/tree/develop/tools/local-network-setup).
-
-This process will:
-* run two instances of EVM blockchains (evm_chain_1 and evm_chain_2) on local ganache
-* deploy OriginTrail DKG Smart contracts two both blockchains
-* bootstrap a network of N DKG nodes (default is 4 at ports 8900, 8901, 8902, 8903)
-
+The easiest way to jumpstart development in a local environment is to [set up OT-node v6 in local environment or connect it to public beta DKG](https://docs.origintrail.io/dkg-v6-upcoming-version/setup-instructions-dockerless).
 
 ### Getting started
 
