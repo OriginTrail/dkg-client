@@ -91,27 +91,27 @@ const dkg = new DKGClient(options);
 dkg.nodeInfo().then(result => console.log(result));
 
 // publishing a dataset
-options = { filepath: './path/to/dataset.json', assets: ['Asset'], keywords: ['keyword1', 'keyword2'], visibility: true };
-await dkg.publish(options).then((result) => {
+options = { filepath: './example_dataset.json', assets: ['ExecutiveAnvil'], keywords: ['Product', 'Executive Objects', 'ACME'], visibility: true };
+dkg.publish(options).then((result) => {
     console.log(JSON.stringify(result))
 });
 
 // resolving assertion
 options =  { ids: [
-        '2dd6f0b0a0ce1e6f9aa5ffbd23aee2fe0ecda20aa045bdbefada93b670146e68',
+        '066787bc7269c062fe73b0ebb004c258e07151777e6dfba027fea046df5caf7c',
         '2286826799d0a32a6f0eec7813fcb627910be45fca21f6378cb26ca95097c939'
     ] };dkg.resolve(options).then((result) => {
     console.log(JSON.stringify(result));
 });
 
 // search assertions
-options = { query: 'SearchTerm', resultType: 'assertions' };
+options = { query: 'Product', resultType: 'assertions' };
 dkg.search(options).then((result) => {
     console.log(JSON.stringify(result));
 });
 
 // search entities
-options = { query: 'SearchTerm', resultType: 'entities' };
+options = { query: 'Product', resultType: 'entities' };
 dkg.search(options).then((result) => {
     console.log(JSON.stringify(result));
 });
