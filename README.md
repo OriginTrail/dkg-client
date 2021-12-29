@@ -1,12 +1,12 @@
 ![](https://i.imgur.com/XkISdML.png)
 
-# DKG Client
+# DKG Client v6
 
 **Javascript library for interaction with the OriginTrail Decentralized Knowledge Graph**
 
 **Note**: This library is currently in beta, so you can expect issues to arise. We'd appreciate that if you do run into trouble, you [open up an issue on this repository](https://github.com/OriginTrail/dkg-client/issues) and let us know. 
 
-The official OriginTrail documentation can be found [here](https://docs.origintrail.io/en/latest/).
+The official OriginTrail documentation for v6 can be found [here](https://docs.origintrail.io/dkg-v6-upcoming-version/introduction-to-dkg-v6-start-here).
 
 
 ## Intro - What is a Decentralized Knowledge Graph (DKG)
@@ -60,7 +60,7 @@ This library provides an interface into the OriginTrail Decentralized Knowledge 
 
 ### Instalation
 
-```
+```sh
 npm install dkg-client
 ```
 
@@ -77,87 +77,73 @@ This process will:
 ### Getting started
 
 
-```javascript=
+```js
 const DKGClient = require('dkg-client');
-
-const dkg = new DKGClient();
 
 const OT_NODE_HOSTNAME = '0.0.0.0';
 const OT_NODE_PORT = '8900';
 
-# initialize connection to your DKG Node
-dkg.init(OT_NODE_HOSTNAME,OT_NODE_PORT,false);
+// initialize connection to your DKG Node
+let options = { endpoint: OT_NODE_HOSTNAME, port: OT_NODE_PORT, useSSL: false };
+const dkg = new DKGClient(options);
 
+// get info about endpoint that you connected to
+dkg.nodeInfo().then(result => console.log(result));
 
-# prepare a simple dataset for publishing, containing one entity
-const simpleDataset = dkg.simplePrepare({
-    identifier_type: 'type_of_indentifier', #e.g. DID, SGTIN, URL etc
-    identifier_value: '12345',
-    properties:{
-        hello: 'world'
-    }
+// publishing a dataset
+options = { filepath: './path/to/dataset.json', assets: ['Asset'], keywords: ['keyword1', 'keyword2'], visibility: true };
+await dkg.publish(options).then((result) => {
+    console.log(JSON.stringify(result))
 });
 
-
-# publishing a dataset
-dkg.publish(simpleDataset).then((publish_result)=>{
-    console.log(publish_result);
+// resolving assertion
+options =  { ids: '2dd6f0b0a1ce1e6f9aa5ffbd2314e2fe0ecda20aa045babefada933620149e68' };
+dkg.resolve(options).then((result) => {
+    console.log(JSON.stringify(result));
 });
 
-
-# exporting a dataset
-dkg.export(dataset_id).then((export_result)=>{
-    console.log(export_result);
+// search assertions
+options = { query: 'SearchTerm', resultType: 'assertions' };
+dkg.search(options).then((result) => {
+    console.log(JSON.stringify(result));
 });
 
-
-# traverses the graph of the entity identified with the identifier (the trail)
-dkg.trail({
-        identifier_types: ['type_of_identifier'],
-        identifier_values: ['12345'],
-        connection_types: [],
-        opcode: 'EQ',
-        depth: 10,
-        extended: false
-}).then((result)=>{
-        console.log(result);
+// search entities
+options = { query: 'SearchTerm', resultType: 'entities' };
+dkg.search(options).then((result) => {
+    console.log(JSON.stringify(result));
 });
-    
 
-# simple query for the same object on the network, a remote fetch it from the first response received    
-dkg.networkQuery([{
-            path: 'type_of_identifier',
-            value: '12345',
-            opcode: 'EQ'
-        }]
-).then((result)=>{
-       console.logo(result);
-        const queryResponse = result[0];
-        dkg.remoteFetch(queryResponse.reply_id, queryResponse.datasets[0].data_set_id).then((result)=>{
-            console.log(result);
-        }, (error) => {
-            console.log(error.response.data.message);
-        }).catch((error) => {
-            console.log(error);
-        })
+// execute sparql query on dkg
+options = {
+    query: `PREFIX schema: <http://schema.org/>
+            CONSTRUCT { ?s ?p ?o }
+            WHERE {
+                GRAPH ?g {
+                ?s ?p ?o .
+                ?s schema:hasVisibility ?v
+            }
+        }`
+};
+dkg.query(options).then((result) => {
+    console.log(JSON.stringify(result));
+});
+
+// validate some triples that we can get querying
+options = {
+    nquads: ['<did:dkg:87c4edd8695ab8a493015361b5a564c82f90f4c5e6c5e5cc9adccf4e11a63ad7> <http://schema.org/hasType> \"person\" .',
+        '<did:dkg:25304bfd61ddcf490dfe852b883c01918768c114a84dcda0ac4aff179ff9ba65> <http://schema.org/hasType> \"person\" .',
+    ],
+};
+await dkg.validate(options).then((result) => {
+    console.log(JSON.stringify(result, null, 2));
 });
 
 ```
 
-### Complex queries
-
-Complex queries are currently supported on the level of the local graph database instance. The workflow for interacting with the DKG is to:
-
-* discover information on the network via the network query
-* remote-fetch information in the local graph DB
-* query the graph DB locally
-
-The upcoming versions of ot-node will add further support for complex querying (SPARQL, GraphQL, Pathquery), however the intention of the OriginTrail DKG is not to reinvent the wheel, rather leverage existing graph solutions in the space - OriginTrail is about connecting, rather than replacing. 
-To stay up to date, check out the official project [roadmap](https://origintrail.io/roadmap).
-
 ## Learn more
 
-More information can be found on the [official DKG documentation](https://docs.origintrail.io/), [website](https://origintrail.io) and [Github](https://github.com/OriginTrail).
+More information can be found on the [official DKGv6 documentation](https://docs.origintrail.io/dkg-v6-upcoming-version/introduction-to-dkg-v6-start-here), [website](https://origintrail.io) and [Github](https://github.com/OriginTrail).
 
 ## Get in touch
 

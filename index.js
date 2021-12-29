@@ -17,17 +17,26 @@ const STATUSES = {
 
 class DKGClient {
 
+    /**
+     * Initialize client
+     * @constructor
+     * @param {object} options
+     * @param {string} options.endpoint
+     * @param {number} options.port
+     * @param {boolean} options.useSSL
+     * @param {string} options.loglevel (optional)
+     */
     constructor(options) {
         let loglevel = options.loglevel ? options.loglevel : 'info';
-        this.logger = new Logger('trace');
-        if (!options.nodeHostname || !options.nodePort) {
-            throw Error('nodeHostName and nodePort are required parameters');
+        this.logger = new Logger(loglevel);
+        if (!options.endpoint || !options.port) {
+            throw Error('Endpoint and port are required parameters');
         }
-        this.nodeBaseUrl = `${options.useSSL ? 'https://' : 'http://'}${options.nodeHostname}:${options.nodePort}`;
+        this.nodeBaseUrl = `${options.useSSL ? 'https://' : 'http://'}${options.endpoint}:${options.port}`;
     }
 
     /**
-     * Get node information (version, is autoupgrade enbled, is telemetry enabled)
+     * Get node information (version, is auto upgrade enabled, is telemetry enabled)
      */
     nodeInfo() {
         return new Promise((resolve, reject) => {
