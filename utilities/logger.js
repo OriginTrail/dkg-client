@@ -1,15 +1,23 @@
+const logger = require('loglevel');
+
+
 class Logger {
+
+    constructor(level) {
+        logger.setLevel(level);
+    }
+
     info (message) {
-        console.log(message);
+        logger.info(message);
     }
 
     debug (message) {
-        console.log(message);
+        logger.debug(message);
     }
 
     error (message) {
-        console.log(message);
+        logger.error(message);
     }
 }
 
-module.exports = new Logger();
+module.exports = Logger;

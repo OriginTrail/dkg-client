@@ -3,6 +3,8 @@ const fs = require('fs');
 const FormData = require('form-data');
 const MerkleTools = require('merkle-tools');
 
+const Logger = require('./utilities/logger');
+
 const defaultTimeoutInSeconds = 10;
 const maxNumberOfRetries = 5;
 const defaultNumberOfResults = 1;
@@ -16,6 +18,8 @@ const STATUSES = {
 class DKGClient {
 
     constructor(options) {
+        let loglevel = options.loglevel ? options.loglevel : 'info';
+        this.logger = new Logger('trace');
         if (!options.nodeHostname || !options.nodePort) {
             throw Error('nodeHostName and nodePort are required parameters');
         }
@@ -34,7 +38,7 @@ class DKGClient {
     }
 
     _sendNodeInfoRequest() {
-        console.debug('Sending node info request')
+        this.logger.debug('Sending node info request')
         return axios.get(
             `${this.nodeBaseUrl}/info`,
             { timeout: defaultTimeoutInSeconds * 1000 }
@@ -62,7 +66,7 @@ class DKGClient {
     }
 
     _publishRequest(options) {
-        console.debug('Sending publish request.');
+        this.logger.debug('Sending publish request.');
         const form = new FormData();
         form.append('file', fs.createReadStream(options.filepath));
         form.append('assets', JSON.stringify([`${options.assets}`]));
@@ -99,7 +103,7 @@ class DKGClient {
     }
 
     _resolveRequest(options) {
-        console.debug('Sending resolve request.');
+        this.logger.debug('Sending resolve request.');
         const form = new FormData();
         let axios_config = {
             method: 'get',
@@ -138,7 +142,7 @@ class DKGClient {
     }
 
     _searchRequest(options) {
-        console.debug('Sending search request.');
+        this.logger.debug('Sending search request.');
         const form = new FormData();
         let prefix = options.prefix ? options.prefix : true;
         let limit = options.limit ? options.limit : 20;
@@ -187,7 +191,7 @@ class DKGClient {
                 searchResponse = await axios(axios_config);
                 currentNumberOfResults = searchResponse.data.itemListElement.length;
             } catch (e) {
-                console.log(e);
+                this.logger.error(e);
                 if (retries === maxNumberOfRetries) {
                     throw e;
                 }
@@ -216,7 +220,7 @@ class DKGClient {
     }
 
     _queryRequest(options) {
-        console.debug('Sending query request.');
+        this.logger.debug('Sending query request.');
         const form = new FormData();
         let type = options.type ? options.type : 'construct';
         form.append('query', options.query);
@@ -238,7 +242,7 @@ class DKGClient {
      * @param {object} options.validationInstructions
      */
     validate(options) {
-        if (!options || !options.assertions || !options.nquads) {
+        if (!options || !options.nquads) {
             throw Error('Please provide assertions and nquads in order to get proofs.')
         }
         return new Promise((resolve, reject) => {
@@ -246,45 +250,54 @@ class DKGClient {
                 .then((response) =>
                     this._getResult({ handler_id: response.data.handler_id, operation: 'proofs:get' }))
                 .then(async (response) => {
-                    // console.log(JSON.stringify(response, null, 2));
-                    await this._performValidation(response.data[0].assertionId, response.data[0].proofs);
+                    if(response.status === STATUSES.completed) {
+                        response = await this._performValidation(response.data);
+                    } else {
+                        throw Error('Unable to get proofs for given nquads');
+                    }
                     resolve(response)
                 })
                 .catch((error) => reject(error));
         });
     }
 
-    async _performValidation(assertionId, proofs) {
-        for(let obj of proofs) {
-            if(obj.proof === null) {
-                console.log(`${obj.triple} has no proof in assertion ${assertionId}`);
-                continue;
-            }
-            let rootHash = await this._fetchRootHash(assertionId);
-            let verified = this._validateProof(obj, rootHash);
-            if(verified) {
-                console.log(`Valid data: ${JSON.stringify(obj)}`);
-            } else {
-                console.log(`Invalid data: ${JSON.stringify(obj)}`);
-            }
-        }
-    }
-
     _getProofsRequest(options) {
-        console.debug('Sending get proofs request.');
+        this.logger.debug('Sending get proofs request.');
         const form = new FormData();
-        let assertions = options.assertions;
         let nquads = options.nquads;
         form.append('nquads', JSON.stringify(nquads));
         let axios_config = {
             method: 'post',
-            url: `${this.nodeBaseUrl}/proofs:get?assertions=${assertions}`,
+            url: `${this.nodeBaseUrl}/proofs:get`,
             headers: {
                 ...form.getHeaders()
             },
             data: form
         }
         return axios(axios_config);
+    }
+
+    async _performValidation(assertions) {
+        let validationResult = [];
+        for(let assertion of assertions) {
+            let rootHash = await this._fetchRootHash(assertion.assertionId);
+            for (let obj of assertion.proofs) {
+                let validatedTriple = { triple: obj.triple, valid: false}
+                if (obj.proof === null) {
+                    this.logger.debug(`${obj.triple} has no proof in assertion ${assertion.assertionId}`);
+                    continue;
+                }
+                let verified = this._validateProof(obj, rootHash);
+                validatedTriple.valid = verified;
+                validationResult.push(validatedTriple);
+                if (verified) {
+                    this.logger.debug(`Validation successful for data: ${JSON.stringify(obj)}`);
+                } else {
+                    this.logger.debug(`Invalid data: ${JSON.stringify(obj)}`);
+                }
+            }
+        }
+        return validationResult;
     }
 
     async _fetchRootHash(assertionId) {
@@ -320,9 +333,9 @@ class DKGClient {
             await this.sleepForMilliseconds(1 * 1000);
             try {
                 response = await axios(axios_config);
-                console.debug(`${options.operation} result status: ${response.data.status}`);
+                this.logger.debug(`${options.operation} result status: ${response.data.status}`);
             } catch (e) {
-                console.log(e);
+                this.logger.error(e);
                 if (retries === maxNumberOfRetries) {
                     throw e;
                 }
