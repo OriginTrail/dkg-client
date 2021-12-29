@@ -24,7 +24,7 @@
   "bugs": {
     "url": "https://github.com/OriginTrail/dkg-client/issues"
   },
-  "homepage": "https://github.com/OriginTrail/dkg-client#readme",
+  "homepage": "https://github.com/OriginTrail/dkg-client/tree/v6/develop#readme",
   "dependencies": {
     "axios": "^0.21.1",
     "crypto-js": "^4.1.1",
