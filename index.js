@@ -27,7 +27,7 @@ class DKGClient {
      * @param {string} options.loglevel (optional)
      */
     constructor(options) {
-        let loglevel = options.loglevel ? options.loglevel : 'info';
+        let loglevel = options.loglevel ? options.loglevel : 'error';
         this.logger = new Logger(loglevel);
         this.sparqlParser = new SparqlParser({ skipValidation: false });
         if (!options.endpoint || !options.port) {
@@ -332,7 +332,7 @@ class DKGClient {
     }
 
     async _fetchRootHash(assertionId) {
-        let result = await this.resolve({ ids: assertionId });
+        let result = await this.resolve({ ids: [assertionId] });
         return result.data[0][assertionId].rootHash;
     }
 
