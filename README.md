@@ -4,7 +4,9 @@
 
 **Javascript library for interaction with the OriginTrail Decentralized Knowledge Graph**
 
-**Note**: This library is currently in beta, so you can expect issues to arise. We'd appreciate that if you do run into trouble, you [open up an issue on this repository](https://github.com/OriginTrail/dkg-client/issues) and let us know. 
+**Note**: This library is currently in beta, so you can expect issues to arise. We'd appreciate that if you do run into trouble, you [open up an issue on this repository](https://github.com/OriginTrail/dkg-client/issues) and let us know.
+Also, there are two actively maintained versions, v5 and v6, make sure you are using the appropriate one.
+The official OriginTrail documentation for v6 can be found [here](https://docs.origintrail.io/dkg-v6-upcoming-version/introduction-to-dkg-v6-start-here).
 
 The official OriginTrail documentation can be found [here](https://docs.origintrail.io/en/latest/).
 
