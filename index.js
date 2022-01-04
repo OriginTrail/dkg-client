@@ -245,9 +245,7 @@ class DKGClient {
         currentNumberOfResults = searchResponse.data.itemListElement.length;
       } catch (e) {
         this.logger.error(e);
-        if (retries > maxNumberOfRetries) {
-          throw e;
-        }
+        throw e;
       }
     } while (!timeoutFlag && numberOfResults > currentNumberOfResults);
     return searchResponse.data;
@@ -413,9 +411,7 @@ class DKGClient {
         );
       } catch (e) {
         this.logger.error(e);
-        if (retries > maxNumberOfRetries) {
-          throw e;
-        }
+        throw e;
       }
     } while (response.data.status === STATUSES.pending);
     if (response.data.status === STATUSES.failed) {
