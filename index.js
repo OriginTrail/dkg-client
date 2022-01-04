@@ -236,10 +236,10 @@ class DKGClient {
       timeoutFlag = true;
     }, 5 * 1000);
     do {
-      retries++;
       if (retries > this.maxNumberOfRetries) {
         throw Error("Unable to get results. Max number of retries reached.");
       }
+      retries++;
       await this.sleepForMilliseconds(1 * 1000);
       try {
         searchResponse = await axios(axios_config);
@@ -400,10 +400,10 @@ class DKGClient {
       },
     };
     do {
-      retries++;
       if (retries > this.maxNumberOfRetries) {
         throw Error("Unable to get results. Max number of retries reached.");
       }
+      retries++;
       await this.sleepForMilliseconds(1 * 1000);
       try {
         response = await axios(axios_config);
