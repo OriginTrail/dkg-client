@@ -28,7 +28,7 @@ class DKGClient {
    */
   constructor(options) {
     let loglevel = options.loglevel ? options.loglevel : "error";
-    const maxNumberOfRetries = options.maxNumberOfRetries
+    this.maxNumberOfRetries = options.maxNumberOfRetries
       ? options.maxNumberOfRetries
       : defaultMaxNumberOfRetries;
     this.logger = new Logger(loglevel);
@@ -236,7 +236,7 @@ class DKGClient {
     }, 5 * 1000);
     do {
       retries++;
-      if (retries > maxNumberOfRetries) {
+      if (retries > this.maxNumberOfRetries) {
         throw Error("Unable to get results. Max number of retries reached.");
       }
       await this.sleepForMilliseconds(1 * 1000);
@@ -400,7 +400,7 @@ class DKGClient {
     };
     do {
       retries++;
-      if (retries > maxNumberOfRetries) {
+      if (retries > this.maxNumberOfRetries) {
         throw Error("Unable to get results. Max number of retries reached.");
       }
       await this.sleepForMilliseconds(1 * 1000);
