@@ -28,9 +28,10 @@ class DKGClient {
    */
   constructor(options) {
     let loglevel = options.loglevel ? options.loglevel : "error";
-    this.maxNumberOfRetries = options.maxNumberOfRetries
-      ? options.maxNumberOfRetries
-      : defaultMaxNumberOfRetries;
+    this.maxNumberOfRetries =
+      options.maxNumberOfRetries && options.maxNumberOfRetries >= 0
+        ? options.maxNumberOfRetries
+        : defaultMaxNumberOfRetries;
     this.logger = new Logger(loglevel);
     this.sparqlParser = new SparqlParser({ skipValidation: false });
     if (!options.endpoint || !options.port) {
