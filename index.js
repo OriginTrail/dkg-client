@@ -234,7 +234,7 @@ class DKGClient {
     let currentNumberOfResults = numberOfResults;
     setTimeout(() => {
       timeoutFlag = true;
-    }, 5 * 1000);
+    }, timeout * 1000);
     do {
       if (retries > this.maxNumberOfRetries) {
         throw Error("Unable to get results. Max number of retries reached.");
