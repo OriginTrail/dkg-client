@@ -6,7 +6,7 @@ const SparqlParser = require("sparqljs").Parser;
 
 const Logger = require("./utilities/logger");
 
-const defaultMaxNumberOfRetries = 5;
+const defaultMaxNumberOfRetries = 50;
 const defaultTimeoutInSeconds = 10;
 const defaultNumberOfResults = 20;
 const STATUSES = {
@@ -105,7 +105,7 @@ class DKGClient {
       },
       data: form,
     };
-    
+
     return axios(axios_config);
   }
 
