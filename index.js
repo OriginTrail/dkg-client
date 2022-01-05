@@ -94,7 +94,7 @@ class DKGClient {
     this.logger.debug("Sending publish request.");
     const form = new FormData();
     form.append("file", fs.createReadStream(options.filepath));
-    form.append("assets", JSON.stringify([`${options.assets}`]));
+    form.append("assets", JSON.stringify(options.assets));
     form.append("keywords", JSON.stringify(options.keywords));
     form.append("visibility", JSON.stringify(!!options.visibility));
     let axios_config = {
