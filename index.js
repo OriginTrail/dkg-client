@@ -95,7 +95,7 @@ class DKGClient {
     const form = new FormData();
     form.append("file", fs.createReadStream(options.filepath));
     form.append("assets", JSON.stringify([`${options.assets}`]));
-    form.append("keywords", JSON.stringify([`${options.keywords}`]));
+    form.append("keywords", JSON.stringify(options.keywords));
     form.append("visibility", JSON.stringify(!!options.visibility));
     let axios_config = {
       method: "post",
@@ -105,7 +105,7 @@ class DKGClient {
       },
       data: form,
     };
-
+    
     return axios(axios_config);
   }
 
