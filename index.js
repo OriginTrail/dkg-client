@@ -214,14 +214,13 @@ class DKGClient {
     if (!options.handler_id) {
       throw Error("Unable to get results, need handler id");
     }
-    let searchResponse = {
-      status: STATUSES.pending,
-    };
+    let searchResponse = {};
     let retries = 0;
     let timeout = options.timeout ? options.timeout : defaultTimeoutInSeconds;
     let numberOfResults = options.numberOfResults
       ? options.numberOfResults
       : defaultNumberOfResults;
+
     const form = new FormData();
     let axios_config = {
       method: "get",
@@ -230,16 +229,14 @@ class DKGClient {
         ...form.getHeaders(),
       },
     };
+
     let timeoutFlag = false;
     let currentNumberOfResults = numberOfResults;
     setTimeout(() => {
       timeoutFlag = true;
     }, timeout * 1000);
+
     do {
-      if (retries > this.maxNumberOfRetries) {
-        throw Error("Unable to get results. Max number of retries reached.");
-      }
-      retries++;
       await this.sleepForMilliseconds(1 * 1000);
       try {
         searchResponse = await axios(axios_config);
