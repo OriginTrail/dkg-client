@@ -179,6 +179,8 @@ class DKGClient {
           this._getSearchResult({
             handler_id: response.data.handler_id,
             resultType: options.resultType,
+            numberOfResults:  options.numberOfResults,
+            timeout:  options.timeout,
           })
         )
         .then((response) => {
