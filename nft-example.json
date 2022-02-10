@@ -1,0 +1,13 @@
+{
+  "@context": "http://schema.org/",
+  "@type": "nft",
+  "name": "Tracie 101",
+  "description": "The genesis collection of NFTs supercharged by the OriginTrail Decentralized Knowledge Graph",
+  "creator": "did:polygon:0xBD084aB97C704FE4a6D620CB7c30C0BE0366646f",
+  "blockchain": "polygon",
+  "contractAddress": "0x123",
+  "license": "Open license",
+  "encodingFormat": "url",
+  "content": "https://lh3.googleusercontent.com/NZ9lz_eqVsNjMwbaAHldfszslDqkpkcenpMXZA3MwwDKyGeTY3aaOayMUqgjONS-DLpVis2bBgT-usK_-gUeqVIYs74psHZP-od28tI=w600",
+  "dateCreated": "2021"
+}

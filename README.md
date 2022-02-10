@@ -85,7 +85,7 @@ const dkg = new DKGClient(options);
 dkg.nodeInfo().then(result => console.log(result));
 
 // publishing a dataset
-options = { filepath: './example_dataset.json', assets: ['ExecutiveAnvil'], keywords: ['Product', 'Executive Objects', 'ACME'], visibility: true };
+options = { filepath: './kg-example.json', assets: ['ExecutiveAnvil'], keywords: ['Product', 'Executive Objects', 'ACME'], visibility: true };
 dkg.publish(options).then((result) => {
     console.log(JSON.stringify(result))
 });
