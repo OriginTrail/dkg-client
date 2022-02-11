@@ -4,14 +4,16 @@ const AssetsProxyPath = require("../utilities/assets-proxy-path");
 class AssetsClient extends AbstractClient{
     constructor(options) {
         super(options);
-        this._assetsProxyPath = new AssetsProxyPath();
+        this._assetsProxyPath = new AssetsProxyPath(options);
     }
     /**
+     * @param content
      * @param {object} options
      * @param {string} options.filepath - path to the dataset
      * @param {string[]} options.keywords (optional)
      */
-    create(options) {
+    create(content, options) {
+        options.filepath = this._createTempFile(content);
         if (!options || !options.filepath) {
             throw Error("Please provide publish options in order to publish.");
         }
@@ -36,7 +38,8 @@ class AssetsClient extends AbstractClient{
      * @param {string} options.filepath - path to the dataset
      * @param {string[]} options.keywords (optional)
      */
-    declare(options) {
+    update(content, options) {
+        options.filepath = this._createTempFile(content);
         if (!options || !options.filepath) {
             throw Error("Please provide publish options in order to publish.");
         }
@@ -64,7 +67,9 @@ class AssetsClient extends AbstractClient{
 
             return this._assetsProxyPath.createPath(
                 Object.assign(Object.create(null), undefined, undefined),
-                Object.assign(Object.create(null), undefined, data));
+                Object.assign(Object.create(null), undefined, data),
+                ual
+            );
         }
 
         return undefined;

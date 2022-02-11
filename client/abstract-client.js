@@ -3,6 +3,7 @@ const fs = require("fs");
 const FormData = require("form-data");
 const MerkleTools = require("merkle-tools");
 const SparqlParser = require("sparqljs").Parser;
+const uuid = require("uuid");
 
 const Logger = require("../utilities/logger");
 
@@ -59,7 +60,7 @@ class AbstractClient {
 
     _sendNodeInfoRequest() {
         this.logger.debug("Sending node info request");
-        return axios.get(`${this.nodeBaseUrl}/api/latest/info`, {
+        return axios.get(`${this.nodeBaseUrl}/info`, {
             timeout: this.defaultTimeoutInSeconds * 1000,
         });
     }
@@ -75,7 +76,7 @@ class AbstractClient {
         form.append("visibility", options.visibility);
         let axios_config = {
             method: "post",
-            url: `${this.nodeBaseUrl}/api/latest/${options.method}`,
+            url: `${this.nodeBaseUrl}/${options.method}`,
             headers: {
                 ...form.getHeaders(),
             },
@@ -125,7 +126,7 @@ class AbstractClient {
 
         let axios_config = {
             method: "get",
-            url: `${this.nodeBaseUrl}/api/latest/resolve?${ids}`,
+            url: `${this.nodeBaseUrl}/resolve?${ids}`,
             headers: {
                 ...form.getHeaders(),
             },
@@ -173,9 +174,9 @@ class AbstractClient {
         let limit = options.limit ? options.limit : 20;
         let query = options.query;
         let resultType = options.resultType;
-        let url = `${this.nodeBaseUrl}/api/latest/${resultType}:search?query=${query}`;
+        let url = `${this.nodeBaseUrl}/${resultType}:search?query=${query}`;
         if (resultType === "entities") {
-            url = `${this.nodeBaseUrl}/api/latest/${resultType}:search?query=${query}&limit=${limit}&prefix=${prefix}`;
+            url = `${this.nodeBaseUrl}/${resultType}:search?query=${query}&limit=${limit}&prefix=${prefix}`;
         }
         let axios_config = {
             method: "get",
@@ -202,7 +203,7 @@ class AbstractClient {
         const form = new FormData();
         let axios_config = {
             method: "get",
-            url: `${this.nodeBaseUrl}/api/latest/${options.resultType}:search/result/${options.handler_id}`,
+            url: `${this.nodeBaseUrl}/${options.resultType}:search/result/${options.handler_id}`,
             headers: {
                 ...form.getHeaders(),
             },
@@ -263,7 +264,7 @@ class AbstractClient {
         form.append("query", sparqlQuery);
         let axios_config = {
             method: "post",
-            url: `${this.nodeBaseUrl}/api/latest/query?type=${type}`,
+            url: `${this.nodeBaseUrl}/query?type=${type}`,
             headers: {
                 ...form.getHeaders(),
             },
@@ -310,7 +311,7 @@ class AbstractClient {
         form.append("nquads", JSON.stringify(nquads));
         let axios_config = {
             method: "post",
-            url: `${this.nodeBaseUrl}/api/latest/proofs:get`,
+            url: `${this.nodeBaseUrl}/proofs:get`,
             headers: {
                 ...form.getHeaders(),
             },
@@ -370,7 +371,7 @@ class AbstractClient {
         const form = new FormData();
         let axios_config = {
             method: "get",
-            url: `${this.nodeBaseUrl}/api/latest/${options.operation}/result/${options.handler_id}`,
+            url: `${this.nodeBaseUrl}/${options.operation}/result/${options.handler_id}`,
             headers: {
                 ...form.getHeaders(),
             },
@@ -397,6 +398,12 @@ class AbstractClient {
             );
         }
         return response.data;
+    }
+
+    _createTempFile(content) {
+        const filePath = `./temp/${uuid.v4()}.json`;
+        fs.writeFileSync(filePath, JSON.stringify(content));
+        return filePath;
     }
 
     async sleepForMilliseconds(milliseconds) {
