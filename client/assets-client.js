@@ -1,11 +1,12 @@
 const AbstractClient = require("./abstract-client");
 const AssetsProxyPath = require("../utilities/assets-proxy-path");
 
-class AssetsClient extends AbstractClient{
+class AssetsClient extends AbstractClient {
     constructor(options) {
         super(options);
         this._assetsProxyPath = new AssetsProxyPath(options);
     }
+
     /**
      * @param content
      * @param {object} options
@@ -59,10 +60,15 @@ class AssetsClient extends AbstractClient{
         });
     }
 
-    async get(ual) {
+    async get(ual, commitHash) {
         //TODO add cache
-        let result = await this.resolve({ids: [ual]});
-        if (result.status===this.STATUSES.completed) {
+
+        let result;
+        if (commitHash)
+            result = await this.resolve({ids: [commitHash]});
+        else
+            result = await this.resolve({ids: [ual]});
+        if (result.status === this.STATUSES.completed) {
             const data = result.data[0].result;
 
             return this._assetsProxyPath.createPath(
@@ -75,13 +81,23 @@ class AssetsClient extends AbstractClient{
         return undefined;
     }
 
+    async getStateCommitHashes(ual) {
+        //TODO add cache
+
+        let result = await this.resolve({ids: [ual]});
+        if (result.status === this.STATUSES.completed) {
+            return result.data[0].result.assertions;
+        }
+        return undefined;
+    }
+
 
     transfer(options) {
-
+        //TODO
     }
 
     approve(options) {
-
+        //TODO
     }
 
 

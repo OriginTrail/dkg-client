@@ -1,6 +1,10 @@
 const AbstractClient = require("./abstract-client");
 
 class NativeClient extends AbstractClient {
+    constructor(props) {
+        super(props);
+    }
+
     /**
      * @param {object} options
      * @param {string} options.filepath - path to the dataset
