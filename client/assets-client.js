@@ -39,8 +39,9 @@ class AssetsClient extends AbstractClient {
      * @param {string} options.filepath - path to the dataset
      * @param {string[]} options.keywords (optional)
      */
-    update(content, options) {
+    update(content, ual, options) {
         options.filepath = this._createTempFile(content);
+        options.ual = ual;
         if (!options || !options.filepath) {
             throw Error("Please provide publish options in order to publish.");
         }

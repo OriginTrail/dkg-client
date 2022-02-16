@@ -424,6 +424,9 @@ class AbstractClient {
 
     _createTempFile(content) {
         const filePath = `./temp/${uuid.v4()}.json`;
+        if (!fs.existsSync('./temp/')){
+            fs.mkdirSync('./temp/');
+        }
         fs.writeFileSync(filePath, JSON.stringify(content));
         return filePath;
     }

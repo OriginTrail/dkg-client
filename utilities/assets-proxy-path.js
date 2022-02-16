@@ -102,12 +102,17 @@ class AssetsProxyPath {
     }
 
     resolve(id) {
+        let body = {
+            status: 'PENDING'
+        }
         let response = request('GET', `${this.nodeBaseUrl}/resolve?ids=${id}`);
-        let waitTill = new Date(new Date().getTime() + 2000);
-        while(waitTill > new Date()){}
-        response = request('GET', `${this.nodeBaseUrl}/resolve/result/${JSON.parse(response.getBody()).handler_id}`)
-
-        return JSON.parse(response.getBody()).data[0].result;
+        const handler = JSON.parse(response.getBody()).handler_id
+        while (body.status === 'PENDING') {
+            new Date(new Date().getTime() + 1000);
+            response = request('GET', `${this.nodeBaseUrl}/resolve/result/${handler}`);
+            body = JSON.parse(response.getBody());
+        }
+        return body.data[0].result;
     }
 }
 
