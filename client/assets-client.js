@@ -41,10 +41,10 @@ class AssetsClient extends AbstractClient {
      */
     update(content, ual, options) {
         options.filepath = this._createTempFile(content);
-        options.ual = ual;
         if (!options || !options.filepath) {
             throw Error("Please provide publish options in order to publish.");
         }
+        options.ual = ual;
         options.method = 'update';
         return new Promise((resolve, reject) => {
             this._publishRequest(options)

@@ -4,7 +4,6 @@ const FormData = require("form-data");
 const MerkleTools = require("merkle-tools");
 const SparqlParser = require("sparqljs").Parser;
 const uuid = require("uuid");
-const N3 = require('n3');
 
 const Logger = require("../utilities/logger");
 
@@ -46,8 +45,6 @@ class AbstractClient {
             .catch((error) => {
                 throw new Error(`Endpoint not available: ${error}`);
             });
-
-        this.N3Parser = new N3.Parser({format: 'N-Triples', baseIRI: 'http://schema.org/'});
     }
 
     /**
@@ -247,25 +244,6 @@ class AbstractClient {
                         operation: "query",
                     })
                 )
-                .then((response) => {
-                    const quads = [];
-                    this.N3Parser.parse(
-                        response.data.join('\n'),
-                        (error, quad, prefixes) => {
-                            if (error) {
-                                reject(error);
-                            }
-                            if (quad) {
-                                quads.push({
-                                    subject: quad._subject.id,
-                                    predicate: quad.predicate.id,
-                                    object: quad.object.id
-                                });
-                            }
-                        },
-                    );
-                    return quads;
-                })
                 .then((response)=>{
                     resolve(response);
                 })
