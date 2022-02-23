@@ -68,7 +68,11 @@ class AbstractClient {
     _publishRequest(options) {
         this.logger.debug("Sending publish request.");
         const form = new FormData();
-        form.append("file", fs.createReadStream(options.filepath));
+        if(options.filepath) {
+            form.append("file", fs.createReadStream(options.filepath));
+        } else {
+            form.append("data", options.data);
+        }
         form.append("keywords", JSON.stringify(options.keywords));
         if (options.ual) {
             form.append("ual", options.ual);
@@ -398,15 +402,6 @@ class AbstractClient {
             );
         }
         return response.data;
-    }
-
-    _createTempFile(content) {
-        const filePath = `./temp/${uuid.v4()}.json`;
-        if (!fs.existsSync('./temp/')){
-            fs.mkdirSync('./temp/');
-        }
-        fs.writeFileSync(filePath, JSON.stringify(content));
-        return filePath;
     }
 
     async sleepForMilliseconds(milliseconds) {

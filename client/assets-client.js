@@ -8,14 +8,13 @@ class AssetsClient extends AbstractClient {
     }
 
     /**
-     * @param content
      * @param {object} options
-     * @param {string} options.filepath - path to the dataset
+     * @param {string} options.filepath - path to the dataset (optional)
+     * @param {string} options.data - stringified dataset (optional)
      * @param {string[]} options.keywords (optional)
      */
-    create(content, options) {
-        options.filepath = this._createTempFile(content);
-        if (!options || !options.filepath) {
+    create(options) {
+        if (!options || (!options.filepath && !options.data)) {
             throw Error("Please provide publish options in order to publish.");
         }
         options.method = 'provision';
@@ -36,12 +35,12 @@ class AssetsClient extends AbstractClient {
 
     /**
      * @param {object} options
-     * @param {string} options.filepath - path to the dataset
+     * @param {string} options.filepath - path to the dataset (optional)
+     * @param {string} options.data - stringified dataset (optional)
      * @param {string[]} options.keywords (optional)
      */
-    update(content, ual, options) {
-        options.filepath = this._createTempFile(content);
-        if (!options || !options.filepath) {
+    update(ual, options) {
+        if (!options || (!options.filepath && !options.data)) {
             throw Error("Please provide publish options in order to publish.");
         }
         options.ual = ual;
