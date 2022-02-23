@@ -199,7 +199,6 @@ class AbstractClient {
         let numberOfResults = options.numberOfResults
             ? options.numberOfResults
             : this.defaultNumberOfResults;
-
         const form = new FormData();
         let axios_config = {
             method: "get",
@@ -208,23 +207,27 @@ class AbstractClient {
                 ...form.getHeaders(),
             },
         };
-
         let timeoutFlag = false;
         let currentNumberOfResults = numberOfResults;
         setTimeout(() => {
             timeoutFlag = true;
         }, timeout * 1000);
-
+        let failed = false;
         do {
             await this.sleepForMilliseconds(1 * 1000);
             try {
                 searchResponse = await axios(axios_config);
-                currentNumberOfResults = searchResponse.data.itemListElement.length;
+                if (searchResponse.data.status === 'FAILED'){
+                    failed = true;
+                } else {
+                    currentNumberOfResults = searchResponse.data.itemListElement.length;
+                }
+
             } catch (e) {
                 this.logger.error(e);
                 throw e;
             }
-        } while (!timeoutFlag && numberOfResults > currentNumberOfResults);
+        } while (!failed && !timeoutFlag && numberOfResults > currentNumberOfResults);
         return searchResponse.data;
     }
 
