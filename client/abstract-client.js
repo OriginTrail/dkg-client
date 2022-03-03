@@ -218,7 +218,7 @@ class AbstractClient {
         }, timeout * 1000);
         let failed = false;
         do {
-            await this.sleepForMilliseconds(1 * 1000);
+            await this.sleepForMilliseconds(5 * 1000);
             try {
                 searchResponse = await axios(axios_config);
                 if (searchResponse.data.status === 'FAILED'){
@@ -388,7 +388,7 @@ class AbstractClient {
                 throw Error("Unable to get results. Max number of retries reached.");
             }
             retries++;
-            await this.sleepForMilliseconds(1 * 1000);
+            await this.sleepForMilliseconds(5 * 1000);
             try {
                 response = await axios(axios_config);
                 this.logger.debug(
