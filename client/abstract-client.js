@@ -218,7 +218,7 @@ class AbstractClient {
         }, timeout * 1000);
         let failed = false;
         do {
-            await this.sleepForMilliseconds(1 * 1000);
+            await this.sleepForMilliseconds(5 * 1000);
             try {
                 searchResponse = await axios(axios_config);
                 if (searchResponse.data.status === 'FAILED'){
