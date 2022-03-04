@@ -8,9 +8,9 @@ const uuid = require("uuid");
 const Logger = require("../utilities/logger");
 
 class AbstractClient {
-    defaultMaxNumberOfRetries = 50;
-    defaultTimeoutInSeconds = 10;
-    defaultNumberOfResults = 20;
+    defaultMaxNumberOfRetries = 5;
+    defaultTimeoutInSeconds = 25;
+    defaultNumberOfResults = 2000;
     STATUSES = {
         pending: "PENDING",
         completed: "COMPLETED",
