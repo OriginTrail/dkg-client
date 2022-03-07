@@ -84,10 +84,24 @@ const dkg = new DKGClient(options);
 // get info about endpoint that you connected to
 dkg.nodeInfo().then(result => console.log(result));
 
+let ual = "";
+// provisioning an asset
+options = { filepath: './kg-example.json', keywords: ["Product", "Executive Objects", "ACME"], visibility: "public" };
+dkg.assets.provision(options).then((result) => {
+    ual = result[0].data.metadata.UALs[0]
+    console.log(JSON.stringify(result, null, 2))
+});
+
+// updating the previously provisioned asset
+options = { filepath: './kg-example.json', keywords: ["Product", "Executive Objects", "ACME"], visibility: "public", ual};
+dkg.assets.update(options).then((result) => {
+    console.log(JSON.stringify(result, null, 2))
+});
+
 // publishing a dataset
-options = { filepath: './kg-example.json', assets: ['ExecutiveAnvil'], keywords: ['Product', 'Executive Objects', 'ACME'], visibility: true };
+options = { filepath: './kg-example.json', keywords: ["Product", "Executive Objects", "ACME"], visibility: "public" };
 dkg.publish(options).then((result) => {
-    console.log(JSON.stringify(result))
+    console.log(JSON.stringify(result, null, 2))
 });
 
 // resolving assertion
@@ -95,19 +109,19 @@ options =  { ids: [
         '066787bc7269c062fe73b0ebb004c258e07151777e6dfba027fea046df5caf7c',
         '2286826799d0a32a6f0eec7813fcb627910be45fca21f6378cb26ca95097c939'
     ] };dkg.resolve(options).then((result) => {
-    console.log(JSON.stringify(result));
+    console.log(JSON.stringify(result, null, 2));
 });
 
 // search assertions
 options = { query: 'Product', resultType: 'assertions' };
 dkg.search(options).then((result) => {
-    console.log(JSON.stringify(result));
+    console.log(JSON.stringify(result, null, 2));
 });
 
 // search entities
 options = { query: 'Product', resultType: 'entities' };
 dkg.search(options).then((result) => {
-    console.log(JSON.stringify(result));
+    console.log(JSON.stringify(result, null, 2));
 });
 
 // execute sparql query on dkg
@@ -122,7 +136,7 @@ options = {
         }`
 };
 dkg.query(options).then((result) => {
-    console.log(JSON.stringify(result));
+    console.log(JSON.stringify(result, null, 2));
 });
 
 // validate some triples that we can get querying
