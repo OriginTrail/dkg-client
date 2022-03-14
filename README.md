@@ -58,7 +58,7 @@ This library provides an interface into the OriginTrail Decentralized Knowledge 
 * verifying the integrity of queried data
 * exporting of datasets in different [formats](https://docs.origintrail.io/en/latest/ODN-Functionalities/dataset-operations.html#supported-standards)
 
-### Instalation
+### Installation
 
 ```sh
 npm install dkg-client
