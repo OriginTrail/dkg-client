@@ -13,7 +13,7 @@ class AssetsClient extends AbstractClient {
      * @param {string} options.data - stringified dataset (optional)
      * @param {string[]} options.keywords (optional)
      */
-    create(options) {
+    provision(options) {
         if (!options || (!options.filepath && !options.data)) {
             throw Error("Please provide publish options in order to publish.");
         }
