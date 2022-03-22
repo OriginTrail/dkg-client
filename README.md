@@ -87,7 +87,7 @@ dkg.nodeInfo().then(result => console.log(result));
 let ual = "";
 // provisioning an asset
 options = { filepath: './kg-example.json', keywords: ["Product", "Executive Objects", "ACME"], visibility: "public" };
-dkg.assets.provision(options).then((result) => {
+dkg.assets.create(options).then((result) => {
     ual = result[0].data.metadata.UALs[0]
     console.log(JSON.stringify(result, null, 2))
 });
