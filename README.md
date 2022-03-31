@@ -1,7 +1,7 @@
-![](https://i.imgur.com/XkISdML.png)
+⛔️ DEPRECATED: dkg-client is now included in [dkg.js](https://github.com/OriginTrail/dkg.js)
+======
 
-# DEPRECATED  ⚠️
-This package is **deprecated** in favor of [dkg.js](https://github.com/OriginTrail/dkg.js)
+![](https://i.imgur.com/XkISdML.png)
 
 # DKG Client
 
