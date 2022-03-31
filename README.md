@@ -1,5 +1,8 @@
 ![](https://i.imgur.com/XkISdML.png)
 
+# DEPRECATED  ⚠️
+This package is **deprecated** in favor of [dkg.js](https://github.com/OriginTrail/dkg.js)
+
 # DKG Client
 
 **Javascript library for interaction with the OriginTrail Decentralized Knowledge Graph**
